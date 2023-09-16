@@ -129,6 +129,8 @@ class FrontendData:
         if check_look_away():
             global look_aways
             look_aways += 1
+        else:
+            look_aways = 0
 
         if look_aways >= 75:
             print("looking away too long.")
