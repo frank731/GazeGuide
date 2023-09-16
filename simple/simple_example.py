@@ -1,6 +1,7 @@
 ''' Demonstrates how to subscribe to and handle data from gaze and event streams '''
-
+import asyncio
 import time
+import socket 
 
 import adhawkapi
 import adhawkapi.frontend
@@ -20,6 +21,21 @@ last_good_rot = []
 eye_gaze_factor = 30
 x_angle_thresh = 25
 y_angle_thresh = 20
+PORT = 1000
+IP = "127.0.0.1"
+DATA_RECEIVED = False
+
+class UDPProtocol:
+    def __init__(self):
+        pass
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def datagram_received(self, data, addr):
+        global DATA_RECEIVED
+        DATA_RECEIVED = True
+        print("hellooojijoijoij")
 
 class EulerRotationOrder(enum.IntEnum):
     '''Various Euler rotation orders. lowercase x,y, z stand for the axes of the world coordinate system, and
@@ -63,8 +79,7 @@ def check_look_away():
     elif el_diff <= -y_angle_thresh:
         print("Too down")
 class FrontendData:
-    ''' BLE Frontend '''
-    
+    ''' BLE Frontend '''    
     def __init__(self):
         # Instantiate an API object
         # TODO: Update the device name to match your device
@@ -82,6 +97,9 @@ class FrontendData:
         # When the api detects a connection to a MindLink, this function will be run.
         self._api.start(tracker_connect_cb=self._handle_tracker_connect,
                         tracker_disconnect_cb=self._handle_tracker_disconnect)
+        
+        self.local = ""
+
 
     def shutdown(self):
         '''Shutdown the api and terminate the bluetooth connection'''
@@ -148,9 +166,21 @@ class FrontendData:
         print("Tracker disconnected")
 
 
-def main():
+async def main():
     ''' App entrypoint '''
     frontend = FrontendData()
+
+    print("Starting UDP server")
+
+    # Get a reference to the event loop as we plan to use
+    # low-level APIs.
+    loop = asyncio.get_running_loop()
+
+    udp_endpoint = await asyncio.start_datagram_endpoint(
+        lambda: UDPProtocol(),  # Use a simple protocol
+        local_addr=(IP, PORT)
+    )
+
     try:
         while True:
             time.sleep(1)
@@ -158,4 +188,4 @@ def main():
         frontend.shutdown()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
