@@ -16,6 +16,8 @@ cur_gaze = []
 set_gaze = []
 cur_rot = []
 set_rot = []
+cur_gaze_dist = 0
+set_gaze_dist = 0
 last_good_gaze = [0, 0]
 last_good_rot = []
 eye_gaze_factor = 30
@@ -94,10 +96,11 @@ class FrontendData:
     @staticmethod
     #TODO Test angle directions, see if eyes move a lot or stay off
     def _handle_et_data(et_data: adhawkapi.EyeTrackingStreamData):
-        global cur_gaze, cur_rot, set_gaze, set_rot, eye_gaze_factor, last_good_gaze, last_good_rot
+        global cur_gaze, cur_rot, eye_gaze_factor, last_good_gaze, last_good_rot, cur_gaze_dist
         #print("running")
         ''' Handles the latest et data '''
         if et_data.gaze is not None:
+            cur_gaze_dist = et_data.gaze[2]
             cur_gaze = vector_to_angles(et_data.gaze[0], et_data.gaze[1], et_data.gaze[2])
             cur_gaze = [x * eye_gaze_factor for x in cur_gaze]
             if isnan(cur_gaze[0]):
@@ -150,7 +153,7 @@ class FrontendData:
 
 
 async def main():
-    global set_gaze, set_rot
+    global set_gaze, set_rot, set_gaze_dist
     ''' App entrypoint '''
     frontend = FrontendData()
 
@@ -165,6 +168,7 @@ async def main():
             if data == b"button_pressed":
                 set_gaze = cur_gaze
                 set_rot = cur_rot
+                set_gaze_dist = cur_gaze_dist
                 print(cur_gaze, cur_rot)
             time.sleep(0.5)
     except (KeyboardInterrupt, SystemExit):
