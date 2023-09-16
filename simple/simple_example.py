@@ -21,6 +21,8 @@ last_good_rot = []
 eye_gaze_factor = 30
 x_angle_thresh = 20
 y_angle_thresh = 15
+refresh_rate = 30
+look_aways = 0
 
 class EulerRotationOrder(enum.IntEnum):
     '''Various Euler rotation orders. lowercase x,y, z stand for the axes of the world coordinate system, and
@@ -58,12 +60,18 @@ def check_look_away():
         print(az_diff, el_diff)
         if az_diff >= x_angle_thresh:
             print("Too right")
+            return True
         elif az_diff <= -x_angle_thresh:
             print("Too left")
+            return True
         if el_diff >= y_angle_thresh:
             print("Too up")
+            return True
         elif el_diff <= -y_angle_thresh:
             print("Too down")
+            return True
+    return False
+
 class FrontendData:
     ''' BLE Frontend '''    
     def __init__(self):
@@ -117,7 +125,13 @@ class FrontendData:
                 #print(cur_rot)
                 #x, y, z, w = et_data.imu_quaternion
                 #print(f'IMU: roll={cur_rol:.2f},azimuth={cur_az:.2f},elevation={cur_el:.2f}')
-        check_look_away()
+
+        if check_look_away():
+            global look_aways
+            look_aways += 1
+
+        if look_aways >= 75:
+            print("looking away too long.")
 
     @staticmethod
     def _handle_events(event_type, timestamp, *args):
@@ -133,7 +147,7 @@ class FrontendData:
 
     def _handle_tracker_connect(self):
         print("Tracker connected")
-        self._api.set_et_stream_rate(30, callback=lambda *args: None)
+        self._api.set_et_stream_rate(refresh_rate, callback=lambda *args: None)
 
         self._api.set_et_stream_control([
             adhawkapi.EyeTrackingStreamTypes.GAZE,
