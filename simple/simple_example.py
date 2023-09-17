@@ -5,10 +5,13 @@ import asyncio
 
 import adhawkapi
 import adhawkapi.frontend
+import cohere
 
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import enum 
+
+from constants import COHERE_API_KEY
 
 from math import isnan
 import requests
@@ -151,9 +154,12 @@ class FrontendData:
             looking_time = 0
             if look_aways >= refresh_rate:
                 print(f'looking away too long. direction: {directions[looking_direction]}')
-                response = requests.get("http://localhost:3000/" + directions[looking_direction])
-                print(response.text)
-                convert_text_to_speech(response.text)
+                co = cohere.Client(COHERE_API_KEY)
+                response = co.generate(
+                    prompt=f"I am building a hackathon project that berates users in a funny way if they don't look into someones eye while talking to them. You are to generate the funny berating comments based on what the user is looking at. Right now the user is looking {directions[looking_direction]}",
+                )
+                print(response.body.generations[0].text)
+                convert_text_to_speech(response.body.generations[0].text)
             look_aways = 0
 
     @staticmethod
