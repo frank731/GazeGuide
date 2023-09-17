@@ -157,6 +157,10 @@ class FrontendData:
                 co = cohere.Client(COHERE_API_KEY)
                 response = co.generate(
                     prompt=f"I am building a hackathon project that berates users in a funny way if they don't look into someones eye while talking to them. You are to generate the funny berating comments based on what the user is looking at. Right now the user is looking {directions[looking_direction]}",
+                    model="command-light",
+                    max_tokens=30,
+                    truncate="END",
+                    temperature=1,
                 )
                 print(response.body.generations[0].text)
                 convert_text_to_speech(response.body.generations[0].text)
