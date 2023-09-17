@@ -24,7 +24,7 @@ class Window(Frame):
 
     def send_signal(self):
         sender_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sender_socket.connect(("127.0.0.1", 12345))
+        sender_socket.connect(("127.0.0.1", 4000))
         sender_socket.send(b"button_pressed")
 
 

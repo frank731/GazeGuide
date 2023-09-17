@@ -1,7 +1,7 @@
 ''' Demonstrates how to subscribe to and handle data from gaze and event streams '''
-import asyncio
 import time
 import socket 
+import asyncio
 
 import adhawkapi
 import adhawkapi.frontend
@@ -11,19 +11,25 @@ import numpy as np
 import enum 
 
 from math import isnan
+import requests
+from txt_to_speech import convert_text_to_speech
 
 cur_gaze = []
 set_gaze = []
 cur_rot = []
 set_rot = []
+directions = {1: "right+to+the+side", 2: "left+to+the+side", 3: "up+at+the+sky", 4: "down+at+the+ground", 5: "far+into+the+distance"}
 cur_gaze_dist = 0
 set_gaze_dist = 0
+looking_direction = 0
+looking_time = 0
 last_good_gaze = [0, 0]
 last_good_rot = []
 eye_gaze_factor = 30
 x_angle_thresh = 20
 y_angle_thresh = 15
-refresh_rate = 30
+gaze_dist_thresh = 20
+refresh_rate = 3
 look_aways = 0
 
 class EulerRotationOrder(enum.IntEnum):
@@ -51,10 +57,10 @@ def vector_to_angles(xpos, ypos, zpos, rotation_order: EulerRotationOrder = Eule
     return [azimuth, elevation]
 
 def check_look_away():
+    global looking_direction
     if len(set_gaze) > 0:
         eye_az_diff = cur_gaze[0] - set_gaze[0]
         eye_el_diff = cur_gaze[1] - set_gaze[1]
-        head_roll_diff = cur_rot[0] - set_rot[0] # Tilting head kind of affects position so eyes should compensate a little 
         head_az_diff = cur_rot[1] - set_rot[1]
         head_el_diff = cur_rot[2] - set_rot[2]
         az_diff = eye_az_diff + head_az_diff
@@ -62,15 +68,23 @@ def check_look_away():
         print(az_diff, el_diff)
         if az_diff >= x_angle_thresh:
             print("Too right")
+            looking_direction = 1
             return True
         elif az_diff <= -x_angle_thresh:
+            looking_direction = 2
             print("Too left")
             return True
         if el_diff >= y_angle_thresh:
+            looking_direction = 3
             print("Too up")
             return True
         elif el_diff <= -y_angle_thresh:
+            looking_direction = 4
             print("Too down")
+            return True
+        if cur_gaze_dist - set_gaze_dist > gaze_dist_thresh:
+            looking_direction = 5
+            print("Too far")
             return True
     return False
 
@@ -104,7 +118,7 @@ class FrontendData:
     @staticmethod
     #TODO Test angle directions, see if eyes move a lot or stay off
     def _handle_et_data(et_data: adhawkapi.EyeTrackingStreamData):
-        global cur_gaze, cur_rot, eye_gaze_factor, last_good_gaze, last_good_rot, cur_gaze_dist
+        global cur_gaze, cur_rot, eye_gaze_factor, last_good_gaze, last_good_rot, cur_gaze_dist, looking_direction, look_aways, looking_time
         #print("running")
         ''' Handles the latest et data '''
         if et_data.gaze is not None:
@@ -130,13 +144,17 @@ class FrontendData:
                 #print(f'IMU: roll={cur_rol:.2f},azimuth={cur_az:.2f},elevation={cur_el:.2f}')
 
         if check_look_away():
-            global look_aways
             look_aways += 1
-        else:
+            #print("looking away")
+        looking_time += 1
+        if looking_time == 3 * refresh_rate:
+            looking_time = 0
+            if look_aways >= refresh_rate:
+                print(f'looking away too long. direction: {directions[looking_direction]}')
+                response = requests.get("http://localhost:3000/" + directions[looking_direction])
+                print(response.text)
+                convert_text_to_speech(response.text)
             look_aways = 0
-
-        if look_aways >= 75:
-            print("looking away too long.")
 
     @staticmethod
     def _handle_events(event_type, timestamp, *args):
@@ -171,11 +189,12 @@ class FrontendData:
 async def main():
     global set_gaze, set_rot, set_gaze_dist
     ''' App entrypoint '''
+    
     frontend = FrontendData()
 
     # Create a socket to listen for the signal
     receiver_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    receiver_socket.bind(("127.0.0.1", 12345))  # Bind to the same address as the sender
+    receiver_socket.bind(("127.0.0.1", 4000))  # Bind to the same address as the sender
     receiver_socket.listen(1) 
     try:
         while True:
