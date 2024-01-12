@@ -1,7 +1,7 @@
 ## Inspiration
 As engineering students, socializing can be hard. Maintaining eye contact can also be hard. That's why we worked very hard this weekend to make it slightly less hard.
 ## What it does
-Using complex machine learning algorithms, GazeGuide is capable of precisely assessing the quality of the conversation you are having, providing helpful tips if it's not going well. Designed for individuals who struggle with communication, GazeGuide guarantees valuable tips and advice, ultimately leading to improved conversations, more friends, and a happier life.
+Using complex algorithms, GazeGuide is capable of precisely assessing the quality of the conversation you are having, providing helpful tips if it's not going well. Designed for individuals who struggle with communication, GazeGuide guarantees valuable tips and advice, ultimately leading to improved conversations, more friends, and a happier life.
 
 ## How we built it
 We've merged Adhawk's eye-tracking glasses with Cohere's LLM SDK to craft an amusing twist on social interactions. Here's how we did it:
